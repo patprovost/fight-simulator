@@ -11,8 +11,6 @@ document.body.appendChild(container);
 
 const canvas = document.createElement("canvas");
 canvas.id = "canvas";
-canvas.style.width = "100%";
-canvas.style.height = "100%";
 canvas.style.display = "block";
 container.appendChild(canvas);
 
@@ -21,8 +19,20 @@ const resizeObserver = new ResizeObserver(resizeCanvas);
 resizeObserver.observe(container);
 
 function resizeCanvas() {
-    canvas.width = canvas.clientWidth;
-    canvas.height = canvas.clientHeight;
+    let width = container.clientWidth;
+    let height = container.clientHeight;
+
+    if (height * (16 / 9) >= width) {
+        width -= width % 16;
+        height = width * (9 / 16);
+    }
+    else {
+        height -= height % 9;
+        width = height * (16 / 9);
+    }
+
+    canvas.width = width;
+    canvas.height = height;
 }
 
 export default canvas;
