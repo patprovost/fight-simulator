@@ -16,7 +16,13 @@ canvas.style.height = "100%";
 canvas.style.display = "block";
 container.appendChild(canvas);
 
-canvas.width = canvas.clientWidth;
-canvas.height = canvas.clientHeight;
+resizeCanvas();
+const resizeObserver = new ResizeObserver(resizeCanvas);
+resizeObserver.observe(container);
+
+function resizeCanvas() {
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+}
 
 export default canvas;
