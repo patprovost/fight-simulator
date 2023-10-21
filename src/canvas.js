@@ -14,6 +14,9 @@ canvas.id = "canvas";
 canvas.style.display = "block";
 container.appendChild(canvas);
 
+const context = canvas.getContext("2d");
+if (context === null) { throw new Error(); }
+
 resizeCanvas();
 const resizeObserver = new ResizeObserver(resizeCanvas);
 resizeObserver.observe(container);
@@ -35,4 +38,4 @@ function resizeCanvas() {
     canvas.height = height;
 }
 
-export default canvas;
+export { canvas, context };
