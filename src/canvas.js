@@ -1,3 +1,9 @@
+const hRatio = 16;
+const vRatio = 9;
+const nativeWidth = 1920;
+const nativeHeight = 1080;
+let canvasWidth, canvasHeight, renderScale;
+
 document.body.style.margin = "0";
 
 const container = document.createElement("div");
@@ -25,17 +31,20 @@ function resizeCanvas() {
     let width = container.clientWidth;
     let height = container.clientHeight;
 
-    if (height * (16 / 9) >= width) {
-        width -= width % 16;
-        height = width * (9 / 16);
+    if (height * (hRatio / vRatio) >= width) {
+        width -= width % hRatio;
+        height = width * (vRatio / hRatio);
     }
     else {
-        height -= height % 9;
-        width = height * (16 / 9);
+        height -= height % vRatio;
+        width = height * (hRatio / vRatio);
     }
 
     canvas.width = width;
     canvas.height = height;
+    canvasWidth = width;
+    canvasHeight = height;
+    renderScale = width / nativeWidth;
 }
 
-export { canvas, context };
+export { canvasWidth, canvasHeight, renderScale, context };
