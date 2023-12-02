@@ -15,7 +15,12 @@ class Figure {
     constructor(x, y, fillStyle) {
         this.x = x;
         this.y = y;
-        this.trs = { tx: 0, ty: 0, r: 0, sx: 1, sy: 1 };
+        this.z = 1;
+        this.tx = 0;
+        this.ty = 0;
+        this.radian = 0;
+        this.scale = 1;
+        this.transform = new DOMMatrix();
         this.fillStyle = fillStyle || "black";
 
         this.lowerBody = new LowerBody();
@@ -30,274 +35,279 @@ class Figure {
         this.leftLowerLeg = new LowerLeg();
         this.rightUpperLeg = new UpperLeg();
         this.rightLowerLeg = new LowerLeg();
-    }
+}
 
     draw() {
         context.save();
+        this.render();
+        context.fillStyle = this.fillStyle;
 
-        context.translate(this.x + this.trs.tx, this.y + this.trs.ty);
-        context.rotate(Math.PI * this.trs.r);
-        context.scale(this.trs.sx, this.trs.sy);
+        const drawTable = [[], [], []];
+        drawTable[this.lowerBody.z].push(this.lowerBody);
+        drawTable[this.upperBody.z].push(this.upperBody);
+        drawTable[this.neck.z].push(this.neck);
+        drawTable[this.head.z].push(this.head);
+        drawTable[this.leftUpperArm.z].push(this.leftUpperArm);
+        drawTable[this.leftLowerArm.z].push(this.leftLowerArm);
+        drawTable[this.rightUpperArm.z].push(this.rightUpperArm);
+        drawTable[this.rightLowerArm.z].push(this.rightLowerArm);
+        drawTable[this.leftUpperLeg.z].push(this.leftUpperLeg);
+        drawTable[this.leftLowerLeg.z].push(this.leftLowerLeg);
+        drawTable[this.rightUpperLeg.z].push(this.rightUpperLeg);
+        drawTable[this.rightLowerLeg.z].push(this.rightLowerLeg);
+
+        for (let i = drawTable.length - 1; i >= 0; i--) {
+            for (let j = 0; j < drawTable[i].length; j++) {
+                drawTable[i][j].draw();
+            }
+        }
+
+        context.restore();
+    }
+
+    render() {
+        context.translate(this.x + this.tx, this.y + this.ty);
+        context.rotate(Math.PI * this.radian);
+        context.scale(this.scale, this.scale);
         context.translate(-this.x, -this.y);
-        context.fillStyle = this.fillStyle;
+        this.transform = context.getTransform();
 
-        context.save();
-        this.lowerBody.draw(this.x, this.y);
-        this.upperBody.draw(this.lowerBody.joint.x, this.lowerBody.joint.y);
-        context.fillStyle = this.fillStyle;
-        context.save();
-        this.neck.draw(this.upperBody.joint.x, this.upperBody.joint.y);
-        this.head.draw(this.neck.joint.x, this.neck.joint.y);
-        context.restore();
-        context.save();
-        this.leftUpperArm.draw(this.upperBody.joint.x, this.upperBody.joint.y);
-        this.leftLowerArm.draw(this.leftUpperArm.joint.x, this.leftUpperArm.joint.y);
-        context.restore();
-        this.rightUpperArm.draw(this.upperBody.joint.x, this.upperBody.joint.y);
-        this.rightLowerArm.draw(this.rightUpperArm.joint.x, this.rightUpperArm.joint.y);
-        context.restore();
-        context.save();
-        this.leftUpperLeg.draw(this.x, this.y);
-        this.leftLowerLeg.draw(this.leftUpperLeg.joint.x, this.leftUpperLeg.joint.y);
-        context.restore();
-        this.rightUpperLeg.draw(this.x, this.y);
-        this.rightLowerLeg.draw(this.rightUpperLeg.joint.x, this.rightUpperLeg.joint.y);
+        const pivotLB = this.lowerBody.render(this.x, this.y);
+        const pivotUB = this.upperBody.render(pivotLB.x, pivotLB.y);
+        const pivotN = this.neck.render(pivotUB.x, pivotUB.y);
+        this.head.render(pivotN.x, pivotN.y);
 
-        context.restore();
+        context.setTransform(this.upperBody.transform);
+        const pivotLUA = this.leftUpperArm.render(pivotUB.x, pivotUB.y);
+        this.leftLowerArm.render(pivotLUA.x, pivotLUA.y);
+
+        context.setTransform(this.upperBody.transform);
+        const pivotRUA = this.rightUpperArm.render(pivotUB.x, pivotUB.y);
+        this.rightLowerArm.render(pivotRUA.x, pivotRUA.y);
+
+        context.setTransform(this.transform);
+        const pivotLUL = this.leftUpperLeg.render(this.x, this.y);
+        this.leftLowerLeg.render(pivotLUL.x, pivotLUL.y);
+
+        context.setTransform(this.transform);
+        const pivotRUL = this.rightUpperLeg.render(this.x, this.y);
+        this.rightLowerLeg.render(pivotRUL.x, pivotRUL.y);
     }
 
-    translate(x, y) {
-        this.trs.tx = x;
-        this.trs.ty = y;
+    translate(tx, ty) {
+        this.tx += x;
+        this.ty += y;
     }
 
-    rotate(radian) {
-        this.trs.r = radian;
+    rotate(degree) {
+        this.radian += degree * Math.PI / 180;
     }
 
-    scale(x, y) {
-        this.trs.sx = x;
-        this.trs.sy = y;
+    scale(scale) {
+        this.scale *= scale;
     }
 }
 
-class LowerBody {
+class BodyPart {
     constructor() {
+        this.x = 0;
+        this.y = 0;
+        this.z = 1;
+        this.radian = 0;
+        this.minRadian = Math.PI * -2;
+        this.maxRadian = Math.PI * 2;
+        this.path = new Path2D();
+        this.transform = new DOMMatrix();
         this.fillStyle = "";
-        this.joint = {};
-        this.rotation = 0;
     }
 
-    draw(px, py) {
-        const path = new Path2D();
-        const x = px - radius;
-        const y = py + radius;
-        path.roundRect(x, y, thickness, -lowerBodyLength, radius);
-
+    draw() {
+        let contextFillStyle;
         if (this.fillStyle) {
+            contextFillStyle = context.fillStyle;
             context.fillStyle = this.fillStyle;
         }
-        context.translate(px, py);
-        context.rotate(Math.PI * this.rotation);
-        context.translate(-px, -py);
-        context.fill(path);
 
-        this.joint.x = px;
-        this.joint.y = py - lowerBodyLength + thickness;
+        context.setTransform(this.transform);
+        context.fill(this.path);
+
+        if (this.fillStyle) {
+            context.fillStyle = contextFillStyle;
+        }
     }
 
-    rotate(radian) {
-        this.rotation = radian;
+    rotate(degree) {
+        const radian = degree * Math.PI / 180;
+        if (this.radian + radian <= this.minRadian) {
+            this.radian = this.minRadian;
+        }
+        else if (this.radian + radian >= this.maxRadian) {
+            this.radian = this.maxRadian;
+        }
+        else {
+            this.radian += radian;
+        }
+    }
+
+    applyTransform() {
+        context.translate(this.x, this.y);
+        context.rotate(this.radian);
+        context.translate(-this.x, -this.y);
+        this.transform = context.getTransform();
     }
 }
 
-class UpperBody {
+class LowerBody extends BodyPart {
     constructor() {
-        this.fillStyle = "";
-        this.joint = {};
-        this.rotation = 0;
+        super();
     }
 
-    draw(px, py) {
-        const path = new Path2D();
-        const x = px - radius;
-        const y = py + radius;
-        path.roundRect(x, y, thickness, -upperBodyLength, radius);
+    render(pivotX, pivotY) {
+        this.x = pivotX;
+        this.y = pivotY;
+        this.applyTransform();
 
-        if (this.fillStyle) {
-            context.fillStyle = this.fillStyle;
-        }
-        context.translate(px, py);
-        context.rotate(Math.PI * this.rotation);
-        context.translate(-px, -py);
-        context.fill(path);
+        const x = this.x - radius;
+        const y = this.y + radius;
+        this.path = new Path2D();
+        this.path.roundRect(x, y, thickness, -lowerBodyLength, radius);
 
-        this.joint.x = px;
-        this.joint.y = py - upperBodyLength + thickness;
-    }
-
-    rotate(radian) {
-        this.rotation = radian;
+        const jointX = this.x;
+        const jointY = this.y - lowerBodyLength + thickness;
+        return { x: jointX, y: jointY };
     }
 }
 
-class Neck {
+class UpperBody extends BodyPart {
     constructor() {
-        this.fillStyle = "";
-        this.joint = {};
-        this.rotation = 0;
+        super();
     }
 
-    draw(px, py) {
-        const path = new Path2D();
-        const x = px - radius;
-        const y = py + radius;
-        path.roundRect(x, y, thickness, -neckLength, radius);
+    render(pivotX, pivotY) {
+        this.x = pivotX;
+        this.y = pivotY;
+        this.applyTransform();
 
-        if (this.fillStyle) {
-            context.fillStyle = this.fillStyle;
-        }
-        context.translate(px, py);
-        context.rotate(Math.PI * this.rotation);
-        context.translate(-px, -py);
-        context.fill(path);
+        const x = this.x - radius;
+        const y = this.y + radius;
+        this.path = new Path2D();
+        this.path.roundRect(x, y, thickness, -upperBodyLength, radius);
 
-        this.joint.x = px;
-        this.joint.y = py - neckLength + thickness + radius;
-    }
-
-    rotate(radian) {
-        this.rotation = radian;
+        const jointX = this.x;
+        const jointY = this.y - upperBodyLength + thickness;
+        return { x: jointX, y: jointY };
     }
 }
 
-class Head {
+class Neck extends BodyPart {
     constructor() {
-        this.fillStyle = "";
-        this.joint = {};
-        this.rotation = 0;
+        super();
     }
 
-    draw(px, py) {
-        const path = new Path2D();
-        path.arc(px, py, headRadius, 0, Math.PI * 2);
+    render(pivotX, pivotY) {
+        this.x = pivotX;
+        this.y = pivotY;
+        this.applyTransform();
 
-        if (this.fillStyle) {
-            context.fillStyle = this.fillStyle;
-        }
-        context.fill(path);
+        const x = this.x - radius;
+        const y = this.y + radius;
+        this.path = new Path2D();
+        this.path.roundRect(x, y, thickness, -neckLength, radius);
+
+        const jointX = this.x;
+        const jointY = this.y - neckLength + thickness + radius;
+        return { x: jointX, y: jointY };
     }
 }
 
-class UpperArm {
+class Head extends BodyPart {
     constructor() {
-        this.fillStyle = "";
-        this.joint = {};
-        this.rotation = 0;
+        super();
     }
 
-    draw(px, py) {
-        const path = new Path2D();
-        const x = px - radius;
-        const y = py - radius;
-        path.roundRect(x, y, thickness, upperArmLength, radius);
+    render(pivotX, pivotY) {
+        this.x = pivotX;
+        this.y = pivotY;
+        this.applyTransform();
 
-        if (this.fillStyle) {
-            context.fillStyle = this.fillStyle;
-        }
-        context.translate(px, py);
-        context.rotate(Math.PI * this.rotation);
-        context.translate(-px, -py);
-        context.fill(path);
-
-        this.joint.x = px;
-        this.joint.y = py + upperArmLength - thickness;
-    }
-
-    rotate(radian) {
-        this.rotation = radian;
+        this.path = new Path2D();
+        this.path.arc(this.x, this.y, headRadius, 0, Math.PI * 2);
     }
 }
 
-class LowerArm {
+class UpperArm extends BodyPart {
     constructor() {
-        this.fillStyle = "";
-        this.rotation = 0;
+        super();
     }
 
-    draw(px, py) {
-        const path = new Path2D();
-        const x = px - radius;
-        const y = py - radius;
-        path.roundRect(x, y, thickness, lowerArmLength, radius);
+    render(pivotX, pivotY) {
+        this.x = pivotX;
+        this.y = pivotY;
+        this.applyTransform();
 
-        if (this.fillStyle) {
-            context.fillStyle = this.fillStyle;
-        }
-        context.translate(px, py);
-        context.rotate(Math.PI * this.rotation);
-        context.translate(-px, -py);
-        context.fill(path);
-    }
+        const x = this.x - radius;
+        const y = this.y - radius;
+        this.path = new Path2D();
+        this.path.roundRect(x, y, thickness, upperArmLength, radius);
 
-    rotate(radian) {
-        this.rotation = radian;
+        const jointX = this.x;
+        const jointY = this.y + upperArmLength - thickness;
+        return { x: jointX, y: jointY };
     }
 }
 
-class UpperLeg {
+class LowerArm extends BodyPart {
     constructor() {
-        this.fillStyle = "";
-        this.joint = {};
-        this.rotation = 0;
+        super();
     }
 
-    draw(px, py) {
-        const path = new Path2D();
-        const x = px - radius;
-        const y = py - radius;
-        path.roundRect(x, y, thickness, upperLegLength, radius);
+    render(pivotX, pivotY) {
+        this.x = pivotX;
+        this.y = pivotY;
+        this.applyTransform();
 
-        if (this.fillStyle) {
-            context.fillStyle = this.fillStyle;
-        }
-        context.translate(px, py);
-        context.rotate(Math.PI * this.rotation);
-        context.translate(-px, -py);
-        context.fill(path);
-
-        this.joint.x = px;
-        this.joint.y = py + upperLegLength - thickness;
-    }
-
-    rotate(radian) {
-        this.rotation = radian;
+        const x = this.x - radius;
+        const y = this.y - radius;
+        this.path = new Path2D();
+        this.path.roundRect(x, y, thickness, lowerArmLength, radius);
     }
 }
 
-class LowerLeg {
+class UpperLeg extends BodyPart {
     constructor() {
-        this.fillStyle = "";
-        this.rotation = 0;
+        super();
     }
 
-    draw(px, py) {
-        const path = new Path2D();
-        const x = px - radius;
-        const y = py - radius;
-        path.roundRect(x, y, thickness, lowerLegLength, radius);
+    render(pivotX, pivotY) {
+        this.x = pivotX;
+        this.y = pivotY;
+        this.applyTransform();
 
-        if (this.fillStyle) {
-            context.fillStyle = this.fillStyle;
-        }
-        context.translate(px, py);
-        context.rotate(Math.PI * this.rotation);
-        context.translate(-px, -py);
-        context.fill(path);
+        const x = this.x - radius;
+        const y = this.y - radius;
+        this.path = new Path2D();
+        this.path.roundRect(x, y, thickness, upperLegLength, radius);
+
+        const jointX = this.x;
+        const jointY = this.y + upperLegLength - thickness;
+        return { x: jointX, y: jointY };
+    }
+}
+
+class LowerLeg extends BodyPart {
+    constructor() {
+        super();
     }
 
-    rotate(radian) {
-        this.rotation = radian;
+    render(pivotX, pivotY) {
+        this.x = pivotX;
+        this.y = pivotY;
+        this.applyTransform();
+
+        const x = this.x - radius;
+        const y = this.y - radius;
+        this.path = new Path2D();
+        this.path.roundRect(x, y, thickness, lowerLegLength, radius);
     }
 }
 
