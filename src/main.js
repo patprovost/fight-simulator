@@ -12,15 +12,15 @@ function init() {
 
     figure1 = new Figure(16 * 40, 9 * 60, "blue");
     figure1.leftUpperLeg.rotate(45);
-    figure1.rightUpperLeg.rotate(-45);
+    figure1.rightUpperLeg.rotate(315);
     figure1.leftUpperArm.rotate(45);
-    figure1.rightUpperArm.rotate(-45);
+    figure1.rightUpperArm.rotate(315);
 
     figure2 = new Figure(16 * 80, 9 * 60, "red");
     figure2.leftUpperLeg.rotate(45);
-    figure2.rightUpperLeg.rotate(-45);
+    figure2.rightUpperLeg.rotate(315);
     figure2.leftUpperArm.rotate(45);
-    figure2.rightUpperArm.rotate(-45);
+    figure2.rightUpperArm.rotate(315);
 
     drawList.push(figure1, figure2);
 }

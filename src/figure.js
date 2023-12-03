@@ -16,9 +16,7 @@ class Figure {
         this.x = x;
         this.y = y;
         this.z = 1;
-        this.tx = 0;
-        this.ty = 0;
-        this.radian = 0;
+        this.angle = 0;
         this.scale = 1;
         this.transform = new DOMMatrix();
         this.fillStyle = fillStyle || "black";
@@ -66,8 +64,9 @@ class Figure {
     }
 
     render() {
-        context.translate(this.x + this.tx, this.y + this.ty);
-        context.rotate(Math.PI * this.radian);
+        const radian = this.angle * Math.PI / 180;
+        context.translate(this.x, this.y);
+        context.rotate(radian);
         context.scale(this.scale, this.scale);
         context.translate(-this.x, -this.y);
         this.transform = context.getTransform();
@@ -94,13 +93,24 @@ class Figure {
         this.rightLowerLeg.render(pivotRUL.x, pivotRUL.y);
     }
 
-    translate(tx, ty) {
-        this.tx += x;
-        this.ty += y;
+    translate(x, y) {
+        this.x += x;
+        this.y += y;
     }
 
     rotate(degree) {
-        this.radian += degree * Math.PI / 180;
+        const angle = this.angle + degree;
+        const maxAngle = Math.PI * 2;
+
+        if (angle < 0) {
+            this.angle = angle + maxAngle;
+        }
+        else if (angle > maxAngle) {
+            this.angle = angle - maxAngle;
+        }
+        else {
+            this.angle = angle;
+        }
     }
 
     scale(scale) {
@@ -113,9 +123,9 @@ class BodyPart {
         this.x = 0;
         this.y = 0;
         this.z = 1;
-        this.radian = 0;
-        this.minRadian = Math.PI * -2;
-        this.maxRadian = Math.PI * 2;
+        this.angle = 0;
+        this.minAngle = 0;
+        this.maxAngle = 360;
         this.path = new Path2D();
         this.transform = new DOMMatrix();
         this.fillStyle = "";
@@ -137,21 +147,36 @@ class BodyPart {
     }
 
     rotate(degree) {
-        const radian = degree * Math.PI / 180;
-        if (this.radian + radian <= this.minRadian) {
-            this.radian = this.minRadian;
-        }
-        else if (this.radian + radian >= this.maxRadian) {
-            this.radian = this.maxRadian;
+        const angle = this.angle + degree;
+
+        if (this.minAngle === 0 && this.maxAngle === 360) {
+            if (angle < 0) {
+                this.angle = angle + this.maxAngle;
+            }
+            else if (angle > this.maxAngle) {
+                this.angle = angle - this.maxAngle;
+            }
+            else {
+                this.angle = angle;
+            }
         }
         else {
-            this.radian += radian;
+            if (angle <= this.minAngle) {
+                this.angle = this.minAngle;
+            }
+            else if (angle >= this.maxAngle) {
+                this.angle = this.maxAngle;
+            }
+            else {
+                this.angle = angle;
+            }
         }
     }
 
     applyTransform() {
+        const radian = this.angle * Math.PI / 180;
         context.translate(this.x, this.y);
-        context.rotate(this.radian);
+        context.rotate(radian);
         context.translate(-this.x, -this.y);
         this.transform = context.getTransform();
     }
