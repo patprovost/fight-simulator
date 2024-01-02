@@ -2,7 +2,7 @@ const hRatio = 16;
 const vRatio = 9;
 const nativeWidth = 1920;
 const nativeHeight = 1080;
-let canvasWidth, canvasHeight, renderScale;
+let canvasWidth, canvasHeight, renderScale, scaledWidth, scaledHeight;
 
 document.body.style.margin = "0";
 
@@ -45,6 +45,8 @@ function resizeCanvas() {
     canvasWidth = width;
     canvasHeight = height;
     renderScale = width / nativeWidth;
+    scaledWidth = width / renderScale;
+    scaledHeight = height / renderScale;
 }
 
-export { canvasWidth, canvasHeight, renderScale, context };
+export { canvasWidth, canvasHeight, scaledWidth, scaledHeight, renderScale, context };

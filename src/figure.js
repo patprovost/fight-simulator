@@ -1,4 +1,5 @@
 import { context } from "./canvas.js";
+import { activateAnim } from "./animation.js";
 
 const thickness = 14;
 const radius = thickness / 2;
@@ -33,14 +34,60 @@ class Figure {
         this.leftLowerLeg = new LowerLeg();
         this.rightUpperLeg = new UpperLeg();
         this.rightLowerLeg = new LowerLeg();
-}
+
+        this.activeAnims = [];
+    }
+
+    update() {
+        for (let i = 0; i < this.activeAnims.length; i++) {
+            const anim = this.activeAnims[i];
+
+            if (!anim.frame) {
+                anim.frame = 0;
+                anim.stepX = anim.translationX / anim.duration;
+                anim.stepY = anim.translationY / anim.duration;
+                anim.stepLB = (anim.angleLB - this.lowerBody.angle) / anim.duration;
+                anim.stepUB = (anim.angleUB - this.upperBody.angle) / anim.duration;
+                anim.stepN = (anim.angleN - this.neck.angle) / anim.duration;
+                anim.stepH = (anim.angleH - this.head.angle) / anim.duration;
+                anim.stepLUA = (anim.angleLUA - this.leftUpperArm.angle) / anim.duration;
+                anim.stepLLA = (anim.angleLLA - this.leftLowerArm.angle) / anim.duration;
+                anim.stepRUA = (anim.angleRUA - this.rightUpperArm.angle) / anim.duration;
+                anim.stepRLA = (anim.angleRLA - this.rightLowerArm.angle) / anim.duration;
+                anim.stepLUL = (anim.angleLUL - this.leftUpperLeg.angle) / anim.duration;
+                anim.stepLLL = (anim.angleLLL - this.leftLowerLeg.angle) / anim.duration;
+                anim.stepRUL = (anim.angleRUL - this.rightUpperLeg.angle) / anim.duration;
+                anim.stepRLL = (anim.angleRLL - this.rightLowerLeg.angle) / anim.duration;
+                this.changeZ(anim.changeZ);
+            }
+
+            anim.frame += 1;
+            this.translate(anim.stepX, anim.stepY);
+            this.lowerBody.rotate(anim.stepLB);
+            this.upperBody.rotate(anim.stepUB);
+            this.neck.rotate(anim.stepN);
+            this.head.rotate(anim.stepH);
+            this.leftUpperArm.rotate(anim.stepLUA);
+            this.leftLowerArm.rotate(anim.stepLLA);
+            this.rightUpperArm.rotate(anim.stepRUA);
+            this.rightLowerArm.rotate(anim.stepRLA);
+            this.leftUpperLeg.rotate(anim.stepLUL);
+            this.leftLowerLeg.rotate(anim.stepLLL);
+            this.rightUpperLeg.rotate(anim.stepRUL);
+            this.rightLowerLeg.rotate(anim.stepRLL);
+
+            if (anim.frame === anim.duration) {
+                this.activeAnims.splice(i, 1);
+            }
+        }
+    }
 
     draw() {
         context.save();
         this.render();
         context.fillStyle = this.fillStyle;
 
-        const drawTable = [[], [], []];
+        const drawTable = [[], [], [], []];
         drawTable[this.lowerBody.z].push(this.lowerBody);
         drawTable[this.upperBody.z].push(this.upperBody);
         drawTable[this.neck.z].push(this.neck);
@@ -99,22 +146,46 @@ class Figure {
     }
 
     rotate(degree) {
-        const angle = this.angle + degree;
+        const newAngle = this.angle + degree;
         const maxAngle = Math.PI * 2;
 
-        if (angle < 0) {
-            this.angle = angle + maxAngle;
+        if (newAngle < 0) {
+            this.angle = newAngle + maxAngle;
         }
-        else if (angle > maxAngle) {
-            this.angle = angle - maxAngle;
+        else if (newAngle > maxAngle) {
+            this.angle = newAngle - maxAngle;
         }
         else {
-            this.angle = angle;
+            this.angle = newAngle;
         }
     }
 
     scale(scale) {
         this.scale *= scale;
+    }
+
+    changeZ(z) {
+        const newZ = this.z += z;
+        if (newZ <= 0) {
+            this.z = 0;
+        }
+        else if (newZ >= 3) {
+            this.z = 3;
+        }
+        else {
+           this.z = newZ;
+        }
+    }
+
+    animate(animName) {
+        const anim = activateAnim(animName);
+
+        if (anim !== null) {
+            this.activeAnims.push(anim);
+        }
+        else {
+            console.warn("Invalid animation: " + animName);
+        }
     }
 }
 
@@ -147,28 +218,28 @@ class BodyPart {
     }
 
     rotate(degree) {
-        const angle = this.angle + degree;
+        const newAngle = this.angle + degree;
 
         if (this.minAngle === 0 && this.maxAngle === 360) {
-            if (angle < 0) {
-                this.angle = angle + this.maxAngle;
+            if (newAngle < 0) {
+                this.angle = newAngle + this.maxAngle;
             }
-            else if (angle > this.maxAngle) {
-                this.angle = angle - this.maxAngle;
+            else if (newAngle > this.maxAngle) {
+                this.angle = newAngle - this.maxAngle;
             }
             else {
-                this.angle = angle;
+                this.angle = newAngle;
             }
         }
         else {
-            if (angle <= this.minAngle) {
+            if (newAngle <= this.minAngle) {
                 this.angle = this.minAngle;
             }
-            else if (angle >= this.maxAngle) {
+            else if (newAngle >= this.maxAngle) {
                 this.angle = this.maxAngle;
             }
             else {
-                this.angle = angle;
+                this.angle = newAngle;
             }
         }
     }
