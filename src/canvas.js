@@ -45,8 +45,6 @@ function resizeCanvas() {
     canvasWidth = width;
     canvasHeight = height;
     renderScale = width / nativeWidth;
-    scaledWidth = width / renderScale;
-    scaledHeight = height / renderScale;
 }
 
-export { canvasWidth, canvasHeight, scaledWidth, scaledHeight, renderScale, context };
+export { canvasWidth, canvasHeight, renderScale, context };

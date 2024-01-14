@@ -1,4 +1,4 @@
-import { canvasWidth, canvasHeight, renderScale, scaledWidth, scaledHeight, context } from "./canvas.js";
+import { canvasWidth, canvasHeight, renderScale, context } from "./canvas.js";
 import { startGame, stopGame } from "./loop.js";
 import Figure from "./figure.js";
 
