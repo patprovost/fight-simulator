@@ -1,5 +1,5 @@
 import { context } from "./canvas.js";
-import { activateAnim } from "./animation.js";
+import { AnimationList } from "./animation.js";
 
 const thickness = 14;
 const radius = thickness / 2;
@@ -35,49 +35,55 @@ class Figure {
         this.rightUpperLeg = new UpperLeg();
         this.rightLowerLeg = new LowerLeg();
 
+        this.animList = new AnimationList;
         this.activeAnims = [];
     }
 
     update() {
         for (let i = 0; i < this.activeAnims.length; i++) {
             const anim = this.activeAnims[i];
+            const pose = anim.poses[anim.poseIndex];
 
-            if (!anim.frame) {
-                anim.frame = 0;
-                anim.stepX = anim.translationX / anim.duration;
-                anim.stepY = anim.translationY / anim.duration;
-                anim.stepLB = (anim.angleLB - this.lowerBody.angle) / anim.duration;
-                anim.stepUB = (anim.angleUB - this.upperBody.angle) / anim.duration;
-                anim.stepN = (anim.angleN - this.neck.angle) / anim.duration;
-                anim.stepH = (anim.angleH - this.head.angle) / anim.duration;
-                anim.stepLUA = (anim.angleLUA - this.leftUpperArm.angle) / anim.duration;
-                anim.stepLLA = (anim.angleLLA - this.leftLowerArm.angle) / anim.duration;
-                anim.stepRUA = (anim.angleRUA - this.rightUpperArm.angle) / anim.duration;
-                anim.stepRLA = (anim.angleRLA - this.rightLowerArm.angle) / anim.duration;
-                anim.stepLUL = (anim.angleLUL - this.leftUpperLeg.angle) / anim.duration;
-                anim.stepLLL = (anim.angleLLL - this.leftLowerLeg.angle) / anim.duration;
-                anim.stepRUL = (anim.angleRUL - this.rightUpperLeg.angle) / anim.duration;
-                anim.stepRLL = (anim.angleRLL - this.rightLowerLeg.angle) / anim.duration;
-                this.changeZ(anim.changeZ);
+            if (pose.frame === 0) {
+                pose.stepX = pose.translationX / pose.duration;
+                pose.stepY = pose.translationY / pose.duration;
+                pose.stepLB = (pose.angleLB - this.lowerBody.angle) / pose.duration;
+                pose.stepUB = (pose.angleUB - this.upperBody.angle) / pose.duration;
+                pose.stepN = (pose.angleN - this.neck.angle) / pose.duration;
+                pose.stepH = (pose.angleH - this.head.angle) / pose.duration;
+                pose.stepLUA = (pose.angleLUA - this.leftUpperArm.angle) / pose.duration;
+                pose.stepLLA = (pose.angleLLA - this.leftLowerArm.angle) / pose.duration;
+                pose.stepRUA = (pose.angleRUA - this.rightUpperArm.angle) / pose.duration;
+                pose.stepRLA = (pose.angleRLA - this.rightLowerArm.angle) / pose.duration;
+                pose.stepLUL = (pose.angleLUL - this.leftUpperLeg.angle) / pose.duration;
+                pose.stepLLL = (pose.angleLLL - this.leftLowerLeg.angle) / pose.duration;
+                pose.stepRUL = (pose.angleRUL - this.rightUpperLeg.angle) / pose.duration;
+                pose.stepRLL = (pose.angleRLL - this.rightLowerLeg.angle) / pose.duration;
+                if (pose.changeZ !== 0) {
+                    this.changeZ(pose.changeZ);
+                }
             }
 
-            anim.frame += 1;
-            this.translate(anim.stepX, anim.stepY);
-            this.lowerBody.rotate(anim.stepLB);
-            this.upperBody.rotate(anim.stepUB);
-            this.neck.rotate(anim.stepN);
-            this.head.rotate(anim.stepH);
-            this.leftUpperArm.rotate(anim.stepLUA);
-            this.leftLowerArm.rotate(anim.stepLLA);
-            this.rightUpperArm.rotate(anim.stepRUA);
-            this.rightLowerArm.rotate(anim.stepRLA);
-            this.leftUpperLeg.rotate(anim.stepLUL);
-            this.leftLowerLeg.rotate(anim.stepLLL);
-            this.rightUpperLeg.rotate(anim.stepRUL);
-            this.rightLowerLeg.rotate(anim.stepRLL);
+            pose.frame += 1;
+            this.translate(pose.stepX, pose.stepY);
+            this.lowerBody.rotate(pose.stepLB);
+            this.upperBody.rotate(pose.stepUB);
+            this.neck.rotate(pose.stepN);
+            this.head.rotate(pose.stepH);
+            this.leftUpperArm.rotate(pose.stepLUA);
+            this.leftLowerArm.rotate(pose.stepLLA);
+            this.rightUpperArm.rotate(pose.stepRUA);
+            this.rightLowerArm.rotate(pose.stepRLA);
+            this.leftUpperLeg.rotate(pose.stepLUL);
+            this.leftLowerLeg.rotate(pose.stepLLL);
+            this.rightUpperLeg.rotate(pose.stepRUL);
+            this.rightLowerLeg.rotate(pose.stepRLL);
 
-            if (anim.frame === anim.duration) {
-                this.activeAnims.splice(i, 1);
+            if (pose.frame === pose.duration) {
+                anim.poseIndex += 1;
+                if (anim.poseIndex === anim.poses.length) {
+                    this.activeAnims.splice(i, 1);
+                }
             }
         }
     }
@@ -140,6 +146,17 @@ class Figure {
         this.rightLowerLeg.render(pivotRUL.x, pivotRUL.y);
     }
 
+    animate(animName) {
+        const anim = this.animList[animName];
+
+        if (anim) {
+            this.activeAnims.push(anim);
+        }
+        else {
+            console.warn("Invalid animation: " + animName);
+        }
+    }
+
     translate(x, y) {
         this.x += x;
         this.y += y;
@@ -174,17 +191,6 @@ class Figure {
         }
         else {
            this.z = newZ;
-        }
-    }
-
-    animate(animName) {
-        const anim = activateAnim(animName);
-
-        if (anim !== null) {
-            this.activeAnims.push(anim);
-        }
-        else {
-            console.warn("Invalid animation: " + animName);
         }
     }
 }
